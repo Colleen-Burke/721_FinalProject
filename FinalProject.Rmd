@@ -3,6 +3,8 @@ title: "Final Project"
 author: "Colleen Burke"
 date: "2025-12-02"
 output: word_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -142,6 +144,22 @@ knitr::kable(bias_table, digits = 4,
 
 
 
+## Variances of β̂ (Naïve vs Robust)
+
+```{r var-table}
+var_table <- all_results |>
+  group_by(N, lambda) |>
+  summarise(
+    naive_norm  = mean(naive_norm),
+    robust_norm = mean(robust_norm),
+    naive_pois  = mean(naive_pois),
+    robust_pois = mean(robust_pois),
+    .groups = "drop"
+  )
+
+knitr::kable(var_table, digits = 5,
+             caption = "Naïve and Robust Variances of β̂₁")
+```
 
 
 
