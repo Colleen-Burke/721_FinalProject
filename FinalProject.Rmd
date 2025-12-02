@@ -18,22 +18,139 @@ library(broom)
 set.seed(12345)
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+# Background
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Generalized linear models (GLMs) extend ordinary regression to non-normal outcomes.  
+This project evaluates how model **misspecification** (fitting a Normal model to Poisson data) affects:
 
-```{r cars}
-summary(cars)
+- Bias of λ̂  
+- Variance of β̂  
+- Naïve vs robust variance estimates  
+- Differences by sample size and true λ  
+
+We simulate Poisson outcomes using fixed binary predictors and compare Normal vs Poisson regression.
+
+# Methods
+
+## Load x-vectors
+
+```{r load-x}
+x20  <- read_csv("x_n20-1.csv") |> pull(x)
+x200 <- read_csv("x_n200.csv")   |> pull(x)
+
+length(x20)
+length(x200)
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+## Simulation Functions
+
+```{r sim-functions}
+
+simulate_data <- function(N, lambda, x_vector) {
+  x_vector <- as.numeric(x_vector)
+  N_x <- length(x_vector)
+  
+  if (N_x != N) {
+    stop("Length mismatch: x length = ", N_x, " but N = ", N)
+  }
+  
+  tibble(
+    x = x_vector,
+    y = rpois(N_x, lambda)
+  )
+}
+
+run_one_sim <- function(N, lambda, x_vector) {
+  
+  dat <- simulate_data(N, lambda, x_vector)
+  
+  fit_pois <- glm(y ~ x, family = poisson, data = dat)
+  fit_norm <- glm(y ~ x, family = gaussian, data = dat)
+  
+  new_data <- data.frame(x = x_vector)
+  
+  pois_lambda_hat <- predict(fit_pois, newdata = new_data, type = "response")
+  norm_lambda_hat <- predict(fit_norm, newdata = new_data, type = "response")
+  
+  pois_bias <- mean(pois_lambda_hat - lambda)
+  norm_bias <- mean(norm_lambda_hat - lambda)
+  
+  naive_pois  <- vcov(fit_pois)[2,2]
+  robust_pois <- sandwich(fit_pois)[2,2]
+  
+  naive_norm  <- vcov(fit_norm)[2,2]
+  robust_norm <- sandwich(fit_norm)[2,2]
+  
+  tibble(
+    N = N,
+    lambda = lambda,
+    pois_bias = pois_bias,
+    norm_bias = norm_bias,
+    naive_pois = naive_pois,
+    robust_pois = robust_pois,
+    naive_norm = naive_norm,
+    robust_norm = robust_norm,
+    beta1_pois = coef(fit_pois)[2],
+    beta1_norm = coef(fit_norm)[2]
+  )
+}
 ```
+
+## Run Simulations
+
+```{r run-sims}
+Ns <- c(20, 200)
+lambdas <- c(4, 10)
+B <- 2000
+
+results_list <- list()
+
+for (N in Ns) {
+  
+  x_vec <- if (N == 20) x20 else x200
+  
+  for (lambda in lambdas) {
+    res <- map_dfr(1:B, ~ run_one_sim(N, lambda, x_vec))
+    results_list[[paste0("N", N, "_lambda", lambda)]] <- res
+  }
+}
+
+all_results <- bind_rows(results_list, .id = "scenario")
+```
+
+
+
+# Results
+
+## Bias of λ̂
+
+```{r bias-table}
+bias_table <- all_results |>
+  group_by(N, lambda) |>
+  summarise(
+    mean_pois_bias = mean(pois_bias),
+    mean_norm_bias = mean(norm_bias),
+    .groups = "drop"
+  )
+
+knitr::kable(bias_table, digits = 4,
+             caption = "Average Bias of λ̂ Across Scenarios")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
