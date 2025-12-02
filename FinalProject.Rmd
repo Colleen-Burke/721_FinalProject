@@ -162,8 +162,76 @@ knitr::kable(var_table, digits = 5,
 ```
 
 
+## Confidence Intervals for β̂₁
+
+```{r ci-data}
+ci_summary <- all_results |>
+  group_by(N, lambda) |>
+  summarise(
+    beta_mean_pois  = mean(beta1_pois),
+    se_naive_pois   = sqrt(mean(naive_pois)),
+    se_robust_pois  = sqrt(mean(robust_pois)),
+    beta_mean_norm  = mean(beta1_norm),
+    se_naive_norm   = sqrt(mean(naive_norm)),
+    se_robust_norm  = sqrt(mean(robust_norm)),
+    .groups = "drop"
+  )
+
+ci_summary <- bind_rows(
+  ci_summary |>
+    transmute(
+      N, lambda,
+      model   = "Poisson",
+      var_type = "Naive",
+      beta    = beta_mean_pois,
+      se      = se_naive_pois
+    ),
+  ci_summary |>
+    transmute(
+      N, lambda,
+      model   = "Poisson",
+      var_type = "Robust",
+      beta    = beta_mean_pois,
+      se      = se_robust_pois
+    ),
+  ci_summary |>
+    transmute(
+      N, lambda,
+      model   = "Normal",
+      var_type = "Naive",
+      beta    = beta_mean_norm,
+      se      = se_naive_norm
+    ),
+  ci_summary |>
+    transmute(
+      N, lambda,
+      model   = "Normal",
+      var_type = "Robust",
+      beta    = beta_mean_norm,
+      se      = se_robust_norm
+    )
+) |>
+  mutate(
+    lower = beta - 1.96 * se,
+    upper = beta + 1.96 * se
+  )
+```
 
 
+```{r ci-plot, fig.width=8, fig.height=6}
+ggplot(ci_summary,
+       aes(x = model, y = beta, ymin = lower, ymax = upper,
+           color = var_type)) +
+  geom_pointrange(position = position_dodge(0.4)) +
+  facet_grid(lambda ~ N, labeller = label_both) +
+  labs(
+    title = "95% Confidence Intervals for β₁",
+    y = "Estimate",
+    x = "Model",
+    color = "Variance Type"
+  ) +
+  theme_minimal()
+```
 
 
 
