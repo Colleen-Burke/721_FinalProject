@@ -40,9 +40,16 @@ We simulate Poisson outcomes using fixed binary predictors and compare Normal vs
 
 # Methods
 
-## Load x-vectors
+**Simulation Design**: a Monte Carlo simulation was conducted to evaluate the impact of model misspecification on bias and variance. For each scenario, Poisson-distributed outcomes were generated using a fixed binary predictor vector and specified combinations of sample sizes (N = 20, 200) and true rate parameters (λ = 4, 10). 
 
-```{r load-x, echo = FALSE}
+**Model Fitting**: each simulated dataset was fit using two models: 
+1) a correctly specified Poisson regression
+2) a misspecified Normal regression. 
+
+**Estimate Extraction**: from each model, we extracted (1) estimates of λ̂, (2) estimates of β̂₁, and (3) naïve and robust variance estimates for β̂₁. The simulation was repeated across all N × λ scenarios, and results were summarized to compare bias, variance behavior, and confidence interval width across models and conditions.
+
+
+```{r load-x-vectors, include = FALSE}
 x20  <- read_csv(here("x_n20-1.csv")) |> pull(x)
 x200 <- read_csv(here("x_n200.csv"))   |> pull(x)
 
@@ -51,10 +58,7 @@ length(x200)
 ```
 
 
-
-## Simulation Functions
-
-```{r sim-functions, echo = FALSE}
+```{r simulation-functions, echo = FALSE}
 
 simulate_data <- function(N, lambda, x_vector) {
   x_vector <- as.numeric(x_vector)
@@ -110,9 +114,8 @@ run_one_sim <- function(N, lambda, x_vector) {
 
 ```
 
-## Run Simulations
 
-```{r run-sims, echo = FALSE}
+```{r run-simulations, echo = FALSE}
 Ns <- c(20, 200)
 lambdas <- c(4, 10)
 B <- 2000
