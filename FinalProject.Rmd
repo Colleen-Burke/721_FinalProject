@@ -150,7 +150,7 @@ bias_table <- all_results |>
 knitr::kable(bias_table, digits = 4,
              caption = "Average Bias of λ̂ Across Scenarios")
 ```
-
+Across all combinations of N and λ, the average bias is very close to zero for both models, indicating that λ̂ is essentially unbiased in this setting.
 
 
 ## Variances of β̂ (Naïve vs Robust)
@@ -166,10 +166,11 @@ var_table <- all_results |>
     .groups = "drop"
   )
 
-knitr::kable(var_table, digits = 5,
+knitr::kable(var_table, digits = 4,
              caption = "Naïve and Robust Variances of β̂₁")
 ```
 
+The Poisson model shows similar naïve and robust variances, while the Normal model tends to have larger robust than naïve variances, especially in smaller samples, suggesting that naive variances under misspecification can underestimate true uncertainty.
 
 ## Confidence Intervals for β̂₁
 
