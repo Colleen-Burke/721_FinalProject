@@ -175,7 +175,6 @@ The Poisson model shows similar naïve and robust variances, while the Normal mo
 ## Confidence Intervals for β̂₁
 
 ```{r ci-data, echo = FALSE}
-# Summarise simulation results to get mean beta and its SE
 ci_summary <- all_results |>
   group_by(N, lambda) |>
   summarise(
@@ -188,39 +187,38 @@ ci_summary <- all_results |>
     .groups = "drop"
   )
 
-# Put into long format: one row per model × variance type
 ci_summary <- bind_rows(
   ci_summary |>
     transmute(
       N, lambda,
-      model    = "Poisson",
+      model   = "Poisson",
       var_type = "Naive",
-      beta     = beta_mean_pois,
-      se       = se_naive_pois
+      beta    = beta_mean_pois,
+      se      = se_naive_pois
     ),
   ci_summary |>
     transmute(
       N, lambda,
-      model    = "Poisson",
+      model   = "Poisson",
       var_type = "Robust",
-      beta     = beta_mean_pois,
-      se       = se_robust_pois
+      beta    = beta_mean_pois,
+      se      = se_robust_pois
     ),
   ci_summary |>
     transmute(
       N, lambda,
-      model    = "Normal",
+      model   = "Normal",
       var_type = "Naive",
-      beta     = beta_mean_norm,
-      se       = se_naive_norm
+      beta    = beta_mean_norm,
+      se      = se_naive_norm
     ),
   ci_summary |>
     transmute(
       N, lambda,
-      model    = "Normal",
+      model   = "Normal",
       var_type = "Robust",
-      beta     = beta_mean_norm,
-      se       = se_robust_norm
+      beta    = beta_mean_norm,
+      se      = se_robust_norm
     )
 ) |>
   mutate(
@@ -261,6 +259,8 @@ ggplot(ci_summary,
   )
 
 ```
+These confidence intervals show that both models produce β̂₁ estimates centered near zero, but robust intervals, especially for the misspecified Normal model at N = 20—are wider, better capturing sampling variability while all intervals tighten as N and λ increase.
+
 
 # Conclusions
 
