@@ -23,6 +23,8 @@ library(viridis)
 set.seed(12345)
 ```
 
+In this final project, a Monte Carlo simulation was used to compare Poisson and Normal regression models for count outcomes. The goal is to examine how model misspecification, sample size, and the true rate parameter (λ) influence bias in λ̂ and the variability of β̂₁ under naïve and robust variance estimators.
+
 # Background
 
 Generalized linear models (GLMs) extend ordinary regression to non-normal outcomes.  
@@ -34,6 +36,7 @@ This project evaluates how model **misspecification** (fitting a Normal model to
 - Differences by sample size and true λ  
 
 We simulate Poisson outcomes using fixed binary predictors and compare Normal vs Poisson regression.
+
 
 # Methods
 
