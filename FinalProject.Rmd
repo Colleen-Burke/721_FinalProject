@@ -17,6 +17,8 @@ library(sandwich)
 library(knitr)
 library(broom)
 library(here)
+library(ggplot2)
+library(viridis)
 
 set.seed(12345)
 ```
@@ -165,6 +167,7 @@ knitr::kable(var_table, digits = 5,
 ## Confidence Intervals for β̂₁
 
 ```{r ci-data, echo = FALSE}
+# Summarise simulation results to get mean beta and its SE
 ci_summary <- all_results |>
   group_by(N, lambda) |>
   summarise(
@@ -177,38 +180,39 @@ ci_summary <- all_results |>
     .groups = "drop"
   )
 
+# Put into long format: one row per model × variance type
 ci_summary <- bind_rows(
   ci_summary |>
     transmute(
       N, lambda,
-      model   = "Poisson",
+      model    = "Poisson",
       var_type = "Naive",
-      beta    = beta_mean_pois,
-      se      = se_naive_pois
+      beta     = beta_mean_pois,
+      se       = se_naive_pois
     ),
   ci_summary |>
     transmute(
       N, lambda,
-      model   = "Poisson",
+      model    = "Poisson",
       var_type = "Robust",
-      beta    = beta_mean_pois,
-      se      = se_robust_pois
+      beta     = beta_mean_pois,
+      se       = se_robust_pois
     ),
   ci_summary |>
     transmute(
       N, lambda,
-      model   = "Normal",
+      model    = "Normal",
       var_type = "Naive",
-      beta    = beta_mean_norm,
-      se      = se_naive_norm
+      beta     = beta_mean_norm,
+      se       = se_naive_norm
     ),
   ci_summary |>
     transmute(
       N, lambda,
-      model   = "Normal",
+      model    = "Normal",
       var_type = "Robust",
-      beta    = beta_mean_norm,
-      se      = se_robust_norm
+      beta     = beta_mean_norm,
+      se       = se_robust_norm
     )
 ) |>
   mutate(
@@ -219,18 +223,35 @@ ci_summary <- bind_rows(
 
 
 ```{r ci-plot, fig.width=8, fig.height=6, echo = FALSE}
-ggplot(ci_summary,
-       aes(x = model, y = beta, ymin = lower, ymax = upper,
-           color = var_type)) +
-  geom_pointrange(position = position_dodge(0.4)) +
-  facet_grid(lambda ~ N, labeller = label_both) +
+ggplot(ci_summary, 
+       aes(x = model, y = beta, color = var_type)) +
+  geom_point(position = position_dodge(width = 0.5), size = 3) +
+  geom_errorbar(
+    aes(ymin = lower, ymax = upper),
+    width = 0.15,
+    position = position_dodge(width = 0.5),
+    linewidth = 1
+  ) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray30") +
+  scale_color_viridis_d(option = "plasma", end = 0.8, name = "Variance Type") +
+  facet_grid(lambda ~ N, labeller = labeller(
+    lambda = function(x) paste0("λ = ", x),
+    N = function(x) paste0("N = ", x)
+  )) +
   labs(
     title = "95% Confidence Intervals for β₁",
-    y = "Estimate",
-    x = "Model",
-    color = "Variance Type"
+    x = "Model Type",
+    y = expression(hat(beta)[1])
   ) +
-  theme_minimal()
+  theme_bw(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 18),
+    strip.text = element_text(size = 12, face = "bold"),
+    legend.position = "right",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  )
+
 ```
 
 # Conclusions
