@@ -8,7 +8,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 
 library(tidyverse)
 library(readr)
@@ -16,10 +16,10 @@ library(purrr)
 library(sandwich)
 library(knitr)
 library(broom)
+library(here)
 
 set.seed(12345)
 ```
-
 
 # Background
 
@@ -37,9 +37,9 @@ We simulate Poisson outcomes using fixed binary predictors and compare Normal vs
 
 ## Load x-vectors
 
-```{r load-x}
-x20  <- read_csv("x_n20-1.csv") |> pull(x)
-x200 <- read_csv("x_n200.csv")   |> pull(x)
+```{r load-x, echo = FALSE}
+x20  <- read_csv(here("x_n20-1.csv")) |> pull(x)
+x200 <- read_csv(here("x_n200.csv"))   |> pull(x)
 
 length(x20)
 length(x200)
@@ -49,7 +49,7 @@ length(x200)
 
 ## Simulation Functions
 
-```{r sim-functions}
+```{r sim-functions, echo = FALSE}
 
 simulate_data <- function(N, lambda, x_vector) {
   x_vector <- as.numeric(x_vector)
@@ -103,7 +103,7 @@ run_one_sim <- function(N, lambda, x_vector) {
 
 ## Run Simulations
 
-```{r run-sims}
+```{r run-sims, echo = FALSE}
 Ns <- c(20, 200)
 lambdas <- c(4, 10)
 B <- 2000
@@ -129,7 +129,7 @@ all_results <- bind_rows(results_list, .id = "scenario")
 
 ## Bias of λ̂
 
-```{r bias-table}
+```{r bias-table, echo = FALSE}
 bias_table <- all_results |>
   group_by(N, lambda) |>
   summarise(
@@ -146,7 +146,7 @@ knitr::kable(bias_table, digits = 4,
 
 ## Variances of β̂ (Naïve vs Robust)
 
-```{r var-table}
+```{r var-table, echo = FALSE}
 var_table <- all_results |>
   group_by(N, lambda) |>
   summarise(
@@ -164,7 +164,7 @@ knitr::kable(var_table, digits = 5,
 
 ## Confidence Intervals for β̂₁
 
-```{r ci-data}
+```{r ci-data, echo = FALSE}
 ci_summary <- all_results |>
   group_by(N, lambda) |>
   summarise(
@@ -218,7 +218,7 @@ ci_summary <- bind_rows(
 ```
 
 
-```{r ci-plot, fig.width=8, fig.height=6}
+```{r ci-plot, fig.width=8, fig.height=6, echo = FALSE}
 ggplot(ci_summary,
        aes(x = model, y = beta, ymin = lower, ymax = upper,
            color = var_type)) +
@@ -238,5 +238,3 @@ ggplot(ci_summary,
 
 
 
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
