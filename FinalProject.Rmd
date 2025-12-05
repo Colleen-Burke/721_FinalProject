@@ -235,6 +235,15 @@ ggplot(ci_summary,
 
 # Conclusions
 
+Across all simulation scenarios, model misspecification affected uncertainty more than point estimates. Both the Poisson and Normal models produced mean estimates of λ with minimal bias, indicating that misspecifying the outcome distribution did not materially distort the mean structure in this simple setup.
+
+Variance estimates, however, were more sensitive to misspecification. For correctly specified Poisson models, naïve and robust variances were nearly identical. In contrast, the Normal model applied to Poisson data showed consistently larger robust variances, especially in smaller samples, which highlights that naive variances from a misspecified model can underestimate true sampling variability.
+
+Sample size had a predictable stabilizing effect: increasing N from 20 to 200 reduced variability in estimates and diminished differences between models and variance estimators. Larger samples helped the Normal model behave more similarly to the Poisson model.
+
+Finally, increasing the true rate from λ=4 to λ=10 increased variability, as expected from the Poisson mean–variance relationship. Because the distribution becomes more symmetric at higher λ, the consequences of misspecification were slightly less noticeable at λ=10.
+
+Overall, misspecification had little effect on bias but clear effects on variance (particularly when sample sizes were small or λ was low) which underscores when correct distributional assumptions and robust variance estimators matter most.
 
 
 
