@@ -11,6 +11,7 @@ editor_options:
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 
 library(tidyverse)
+library(tibble)
 library(readr)
 library(purrr)
 library(sandwich)
@@ -59,47 +60,36 @@ length(x200)
 
 
 ```{r simulation-functions, echo = FALSE}
-
-simulate_data <- function(N, lambda, x_vector) {
+simulate_data <- function(n, lambda, x_vector) {
   x_vector <- as.numeric(x_vector)
-  N_x <- length(x_vector)
-  
-  if (N_x != N) {
-    stop("Length mismatch: x length = ", N_x, " but N = ", N)
+  n_x <- length(x_vector)
+  if (n_x != n) {
+    stop("Length mismatch: x length = ", n_x, " but n = ", n)
   }
-  
   tibble(
     x = x_vector,
-    y = rpois(N_x, lambda)
+    y = rpois(n_x, lambda)
   )
 }
 
-run_one_sim <- function(N, lambda, x_vector) {
-  
-  dat <- simulate_data(N, lambda, x_vector)
-  
+run_one_sim <- function(n, lambda, x_vector) {
+  dat <- simulate_data(n, lambda, x_vector)
   fit_pois <- glm(y ~ x, family = poisson, data = dat)
   fit_norm <- glm(y ~ x, family = gaussian, data = dat)
-  
   # create a data frame so we can predict fitted mean counts at each observed x
   new_data <- data.frame(x = x_vector)
-  
   pois_lambda_hat <- predict(fit_pois, newdata = new_data, type = "response")
   norm_lambda_hat <- predict(fit_norm, newdata = new_data, type = "response")
-  
   # compute average bias of λ̂ across all observations in this simulated dataset
   pois_bias <- mean(pois_lambda_hat - lambda)
   norm_bias <- mean(norm_lambda_hat - lambda)
-  
-  # extract the variance of β̂₁ (2nd coefficient) from each model’s variance–covariance matrix
+  # extract the variance of β̂₁ from each model’s variance–covariance matrix
   naive_pois  <- vcov(fit_pois)[2, 2]
   robust_pois <- sandwich(fit_pois)[2, 2]
-  
   naive_norm  <- vcov(fit_norm)[2, 2]
   robust_norm <- sandwich(fit_norm)[2, 2]
-  
   tibble(
-    N = N,
+    n = n,
     lambda = lambda,
     beta1_pois  = coef(fit_pois)[2],
     beta1_norm  = coef(fit_norm)[2],
@@ -111,24 +101,21 @@ run_one_sim <- function(N, lambda, x_vector) {
     robust_norm = robust_norm
   )
 }
-
 ```
 
 
 ```{r run-simulations, echo = FALSE}
-Ns <- c(20, 200)
-lambdas <- c(4, 10)
-B <- 2000
+n_values <- c(20, 200)
+lambda_values <- c(4, 10)
+n_sims <- 2000
 
 results_list <- list()
 
-for (N in Ns) {
-  
-  x_vec <- if (N == 20) x20 else x200
-  
-  for (lambda in lambdas) {
-    res <- map_dfr(1:B, ~ run_one_sim(N, lambda, x_vec))
-    results_list[[paste0("N", N, "_lambda", lambda)]] <- res
+for (n in n_values) {
+  x_vec <- if (n == 20) x20 else x200
+  for (lambda in lambda_values) {
+    res <- map_dfr(1:n_sims, ~ run_one_sim(n, lambda, x_vec))
+    results_list[[paste0("n", n, "_lambda", lambda)]] <- res
   }
 }
 
@@ -143,7 +130,7 @@ all_results <- bind_rows(results_list, .id = "scenario")
 
 ```{r bias-table, echo = FALSE}
 bias_table <- all_results |>
-  group_by(N, lambda) |>
+  group_by(n, lambda) |>
   summarise(
     mean_pois_bias = mean(pois_bias),
     mean_norm_bias = mean(norm_bias),
@@ -160,7 +147,7 @@ Across all combinations of N and λ, the average bias is very close to zero for 
 
 ```{r var-table, echo = FALSE}
 var_table <- all_results |>
-  group_by(N, lambda) |>
+  group_by(n, lambda) |>
   summarise(
     naive_norm  = mean(naive_norm),
     robust_norm = mean(robust_norm),
@@ -179,7 +166,7 @@ The Poisson model shows similar naïve and robust variances, while the Normal mo
 
 ```{r ci-data, echo = FALSE}
 ci_summary <- all_results |>
-  group_by(N, lambda) |>
+  group_by(n, lambda) |>
   summarise(
     beta_mean_pois  = mean(beta1_pois),
     se_naive_pois   = sqrt(mean(naive_pois)),
@@ -193,7 +180,7 @@ ci_summary <- all_results |>
 ci_summary <- bind_rows(
   ci_summary |>
     transmute(
-      N, lambda,
+      n, lambda,
       model   = "Poisson",
       var_type = "Naive",
       beta    = beta_mean_pois,
@@ -201,7 +188,7 @@ ci_summary <- bind_rows(
     ),
   ci_summary |>
     transmute(
-      N, lambda,
+      n, lambda,
       model   = "Poisson",
       var_type = "Robust",
       beta    = beta_mean_pois,
@@ -209,7 +196,7 @@ ci_summary <- bind_rows(
     ),
   ci_summary |>
     transmute(
-      N, lambda,
+      n, lambda,
       model   = "Normal",
       var_type = "Naive",
       beta    = beta_mean_norm,
@@ -217,7 +204,7 @@ ci_summary <- bind_rows(
     ),
   ci_summary |>
     transmute(
-      N, lambda,
+      n, lambda,
       model   = "Normal",
       var_type = "Robust",
       beta    = beta_mean_norm,
@@ -232,7 +219,7 @@ ci_summary <- bind_rows(
 
 
 ```{r ci-plot, fig.width=8, fig.height=6, echo = FALSE}
-ggplot(ci_summary, 
+ggplot(ci_summary,
        aes(x = model, y = beta, color = var_type)) +
   geom_point(position = position_dodge(width = 0.5), size = 3) +
   geom_errorbar(
@@ -243,9 +230,9 @@ ggplot(ci_summary,
   ) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray30") +
   scale_color_viridis_d(option = "plasma", end = 0.8, name = "Variance Type") +
-  facet_grid(lambda ~ N, labeller = labeller(
+  facet_grid(lambda ~ n, labeller = labeller(
     lambda = function(x) paste0("λ = ", x),
-    N = function(x) paste0("N = ", x)
+    n = function(x) paste0("n = ", x)
   )) +
   labs(
     title = "95% Confidence Intervals for β₁",
@@ -260,7 +247,6 @@ ggplot(ci_summary,
     panel.grid.minor = element_blank(),
     panel.grid.major.x = element_blank()
   )
-
 ```
 These confidence intervals show that both models produce β̂₁ estimates centered near zero, but robust intervals, especially for the misspecified Normal model at N = 20—are wider, better capturing sampling variability while all intervals tighten as N and λ increase.
 
